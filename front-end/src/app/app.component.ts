@@ -1,115 +1,70 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
 import { ProductService } from './product.service';
 import { ApiService } from './api.service';
 import { SearchService } from './search.service';
-import { catchError, debounceTime, distinctUntilChanged, fromEvent, map, of, switchMap } from 'rxjs';
+import { debounceTime, distinctUntilChanged, Subject, switchMap } from 'rxjs';
 
 @Component({
-	selector: 'app-root',
-	templateUrl: './app.component.html',
-	styleUrls: ['./app.component.css']
+    selector: 'app-root',
+    templateUrl: './app.component.html',
+    styleUrls: ['./app.component.css']
 })
-export class AppComponent implements OnInit {
-	title = 'Application TP5';
-	productsAll: any[] = [];
-	isLoggedIn = false;
-	loginForm = { login: '', password: '' };
-	searchTerm: string = '';
-	searchField$: any;
-	input: any;
-	model: any;
+export class AppComponent implements AfterViewInit {
+    title = 'Application TP5';
+    productsAll: any[] = [];
+    isLoggedIn = false;
+    loginForm = { login: '', password: '' };
+    searchTerm: string = '';
+    searchResults: any[] = [];
+    private searchTerms = new Subject<string>();
 
-	constructor(
-		private productService: ProductService, // utilisé dans la version sans back end temporairement
-		private apiService: ApiService,
-		private searchService: SearchService,
+    @ViewChild('searchInput', { static: true }) searchInput!: ElementRef;
 
-	) { }
+    constructor(
+        private productService: ProductService,
+        private apiService: ApiService,
+        private searchService: SearchService
+    ) { }
 
-	ngOnInit(): void {
-		this.checkAuthentication();
-	}
+    ngAfterViewInit(): void {
+        this.searchTerms.pipe(
+            debounceTime(300),
+            distinctUntilChanged(),
+            switchMap((term: string) => term ? this.searchService.search(term) : [])
+        ).subscribe(results => {
+            this.searchResults = results;
+            console.log('Résultats de la recherche :', results);
+        });
+    }
 
-	login(): void {
-		const { login, password } = this.loginForm;
+    onSearch(): void {
+        this.searchTerms.next(this.searchTerm);
+		this.searchResults = []; // réinitialisation si on vide la barre après avoir écrit un terme
+    }
 
-		this.apiService.loginClient(login, password).subscribe(
-			(client) => {
-				this.isLoggedIn = true;
-				this.loadProducts();
-			},
-			(error) => {
-				console.error('Erreur lors de la connexion :', error);
-				this.loginForm = { login: '', password: '' }; // On "vide" le formulaire si la connexion a échoué
-			}
-		);
-	}
+    login(): void {
+        const { login, password } = this.loginForm;
 
-	private checkAuthentication(): void {
-	}
+        this.apiService.loginClient(login, password).subscribe(
+            (client) => {
+                this.isLoggedIn = true;
+                this.loadProducts();
+            },
+            (error) => {
+                console.error('Erreur lors de la connexion :', error);
+                this.loginForm = { login: '', password: '' };
+            }
+        );
+    }
 
-	// Ce chargement se produit après authentification
-	private loadProducts(): void {
-		this.productService.getProducts().subscribe(
-			(data: any[]) => {
-				this.productsAll = data;
-			},
-			(error) => {
-				console.error('Erreur lors du chargement des produits :', error);
-			}
-		);
-	}
-	ngAfterViewInit() {
-		this.searchField$ = fromEvent(this.input.nativeElement, `keyup`);
-		this.model = this.searchField$.pipe(
-		  map((event: any) => event.target.value),
-		  debounceTime(300),
-		  distinctUntilChanged(),
-	
-		  switchMap((term: string) =>
-			this.searchService.search(term).pipe(
-			  catchError(() => {
-				return of([]);
-			  })
-			)
-		  )
-		);
-	  }
+    private loadProducts(): void {
+        this.productService.getProducts().subscribe(
+            (data: any[]) => {
+                this.productsAll = data;
+            },
+            (error) => {
+                console.error('Erreur lors du chargement des produits :', error);
+            }
+        );
+    }
 }
-
-
-
-
-
-
-// import { Component, OnInit } from '@angular/core';
-// import { ProductService } from './product.service';
-// import { Observer, Observable } from 'rxjs';
-// import { ApiService } from './api.service';
-
-// @Component({
-//   selector: 'app-root',
-//   templateUrl: './app.component.html',
-//   styleUrls: ['./app.component.css']
-// })
-// export class AppComponent implements OnInit {
-//   title = 'Application TP3';
-//   productsAll: any[] = [];
-
-//   constructor(private productService: ProductService) {}
-
-//   ngOnInit(): void {
-//     const observer: Observer<any[]> = {
-//       next: (data: any[]) => {
-//         this.productsAll = data;
-//       },
-//       error: (error: any) => {
-//         console.error('Erreur lors de la recherche !', error);
-//       },
-//       complete: () => {
-//       }
-//     };
-
-//     this.productService.getProducts().subscribe(observer);
-//   }
-// }

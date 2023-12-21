@@ -9,23 +9,30 @@ import {
   tap,
   switchMap,
 } from 'rxjs/operators';
+import { environment } from 'src/environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class SearchService {
 
-  constructor(private http: HttpClient) { }
-
-  search(term: string) {
-    if (term === '') {
-      return of([]);
-    }
-
-    return this.http.get(
-      `https://api.github.com/search/users?q=${term}`
-    ) /* .pipe(
-        map(response => response[1])
-      ) */;
+	constructor(private http: HttpClient) { }
+  
+	search(term: string): Observable<any[]> {
+	  if (term === '') {
+		return of([]);
+	  }
+  
+	  const searchUrl = environment.backendCatalogueSearch.replace('{filtre}', term);
+	  console.log('Searching for:', term);
+	  return this.http.get<any[]>(searchUrl).pipe(
+		tap(response => {
+		  console.log('Réponse du backend :', response);
+		}),
+		catchError(() => {
+		  return of([]);
+		})
+	  );
+	}
+	
   }
-}

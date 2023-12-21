@@ -20,6 +20,7 @@ export class CatalogComponent implements OnInit {
 
 	ngOnInit(): void {
 	  this.productService.getProducts().subscribe((products) => {
+		console.log('Données reçues du service :', products);
 		this.products = products;
 	  });
 	}

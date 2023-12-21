@@ -1,12 +1,13 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../environments/environment';
 
 @Injectable({
 	providedIn: 'root'
 })
 export class ProductService {
-	private productsUrl = 'assets/product-list.json';
+	private productsUrl = environment.backendCatalogue; // récupère l'URL mentionnée dans environment.ts
 
 	constructor(private http: HttpClient) { }
 
